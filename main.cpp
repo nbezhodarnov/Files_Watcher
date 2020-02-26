@@ -63,10 +63,13 @@ int main(int argc, char *argv[])
                 input = "";
                 while (input == "") {
                     std::cout << "Input full path to the file: ";
-                    input = inStream.readLine();
+                    input = inStream.readLine().trimmed().remove('\'');
                 }
-                worker.add_file(input);
-                qDebug() << "The file has been successfully added to observation.";
+                if (worker.add_file(input)) {
+                    qDebug() << "The file has been successfully added to observation.";
+                } else {
+                    qDebug() << "The file is already on observation.";
+                }
                 if (QFileInfo(input).exists()) {
                     qDebug() << "Now this file exists.\n";
                 } else {
@@ -114,7 +117,7 @@ int main(int argc, char *argv[])
                     if ((number > files_list.size()) || (number == 0)) {
                         qDebug() << "There is no such file. The command has been canceled.\n";
                     } else {
-                        if (worker.get_size(number - 1)) {
+                        if (worker.get_size(number - 1) != (quint64)~0) {
                             qDebug() << "Size of this file is " << worker.get_size(number - 1) << " bytes.\n";
                         } else {
                             qDebug() << "I can't open this file. The command has been canceled.\n";
