@@ -2,10 +2,12 @@
 
 #include <QFileSystemWatcher>
 #include <QCoreApplication>
+#include <QSignalMapper>
 #include <QTextStream>
 #include <QTextCodec>
 #include <QFileInfo>
 #include <QObject>
+#include <QBuffer>
 #include <QDebug>
 #include <QFile>
 #include <QDir>
@@ -49,47 +51,47 @@ int main(int argc, char *argv[])
     QTextCodec* codec = QTextCodec::codecForName("UTF-8");
     QTextCodec::setCodecForLocale(codec);
 
-    QTextStream inStream(stdin);
+    QTextStream inStream(stdin), outStream(stdout);
 
     QString input;
 
     std::thread terminal(
-        [&application, &exitFlag, &worker, &inStream, &input]
+        [&application, &worker, &inStream, &outStream, &input]
         {
         forever {
-            std::cout << "Input command: ";
+            outStream << "Input command: " << flush;
             input = inStream.readLine();
 
             if (input.toLower() == "add") {
                 input = "";
                 while (input == "") {
-                    std::cout << "Input full path to the file: ";
+                    outStream << "Input full path to the file: " << flush;
                     input = inStream.readLine().trimmed().remove('\'');
                 }
                 QFileInfo folder_check(input);
                 if ((folder_check.exists()) && (folder_check.isDir())) {
-                    std::cout << "It's a folder. Do you want to add all files from it (y/n)? ";
+                    outStream << "It's a folder. Do you want to add all files from it (y/n)? " << flush;
                     QString confirmator = inStream.readLine().trimmed();
                     if ((confirmator.toLower() == "yes") || (confirmator.toLower() == "y")) {
                         QStringList files = QDir(input).entryList(QDir::Files, QDir::Name);
                         for (quint64 i = 0; i < files.size(); i++) {
                             if (worker.add_file(files[i])) {
-                                qDebug() << "File" << files[i] << "has been successfully added to observation.";
+                                outStream << "File " << files[i] << " has been successfully added to observation.\n" << flush;
                             }
                         }
                     } else {
-                        qDebug() << "The command has been canceled.";
+                        outStream << "The command has been canceled.\n" << flush;
                     }
                 } else {
                     if (worker.add_file(input)) {
-                        qDebug() << "The file has been successfully added to observation.";
+                        outStream << "The file has been successfully added to observation.\n" << flush;
                     } else {
-                        qDebug() << "The file is already on observation.";
+                        outStream << "The file is already on observation.\n" << flush;
                     }
                     if (QFileInfo(input).exists()) {
-                        qDebug() << "Now this file exists.\n";
+                        outStream << "Now this file exists.\n" << flush;
                     } else {
-                        qDebug() << "Now this file doesn't exists.\n";
+                        outStream << "Now this file doesn't exists.\n" << flush;
                     }
                     if (input.toLower() == "exit") {
                         input = "";
@@ -98,56 +100,56 @@ int main(int argc, char *argv[])
             } else if (input.toLower() == "remove") {
                 QStringList files_list = worker.get_files_list();
                 if (files_list.size()) {
-                    qDebug() << "Choose number of file to remove:";
+                    outStream << "Choose number of file to remove:\n" << flush;
                     quint64 number;
                     for (int i = 0; i < files_list.size(); ++i) {
-                        qDebug() << i + 1 << " - " << files_list[i];
+                        outStream << i + 1 << " - " << files_list[i] << '\n' << flush;
                     }
                     bool is_number = false;
                     while (!is_number) {
-                        std::cout << "Input number: ";
+                        outStream << "Input number: " << flush;
                         number = inStream.readLine().toLong(&is_number);
                     }
                     if ((number > files_list.size()) || (number == 0)) {
-                        qDebug() << "There is no such file. The command has been canceled.\n";
+                        outStream << "There is no such file. The command has been canceled.\n" << flush;
                     } else {
                         worker.remove_file(number - 1);
-                        qDebug() << "The file has been successfully removed from observation.\n";
+                        outStream << "The file has been successfully removed from observation.\n" << flush;
                     }
                 } else {
-                    qDebug() << "There are no files. You must add a file to use this command. The command has been canceled.\n";
+                    outStream << "There are no files. You must add a file to use this command. The command has been canceled.\n" << flush;
                 }
 
             } else if (input.toLower() == "size") {
                 QStringList files_list = worker.get_files_list();
                 if (files_list.size()) {
-                    qDebug() << "Choose number of file to see a size:";
+                    outStream << "Choose number of file to see a size:\n" << flush;
                     quint64 number;
                     for (int i = 0; i < files_list.size(); ++i) {
-                        qDebug() << i + 1 << " - " << files_list[i];
+                        outStream << i + 1 << " - " << files_list[i] << '\n' << flush;
                     }
                     bool is_number = false;
                     while (!is_number) {
-                        std::cout << "Input number: ";
+                        outStream << "Input number: " << flush;
                         number = inStream.readLine().toLong(&is_number);
                     }
                     if ((number > files_list.size()) || (number == 0)) {
-                        qDebug() << "There is no such file. The command has been canceled.\n";
+                        outStream << "There is no such file. The command has been canceled.\n" << flush;
                     } else {
                         if (worker.get_size(number - 1) != (quint64)~0) {
-                            qDebug() << "Size of this file is " << worker.get_size(number - 1) << " bytes.\n";
+                            outStream << "Size of this file is " << worker.get_size(number - 1) << " bytes.\n" << flush;
                         } else {
-                            qDebug() << "I can't open this file. The command has been canceled.\n";
+                            outStream << "I can't open this file. The command has been canceled.\n" << flush;
                         }
                     }
                 } else {
-                    qDebug() << "There are no files. You must add a file to use this command. The command has been canceled.\n";
+                    outStream << "There are no files. You must add a file to use this command. The command has been canceled.\n" << flush;
                 }
             } else if ((input.toLower() != "exit") && (input != "")) {
                 if (input.toLower() != "help") {
-                    qDebug() << "Unknown command: " << input << '\n';
+                    outStream << "Unknown command: " << input << '\n' << flush;
                 }
-                qDebug() << "Available commands:\n add - add a file to watch\n remove - remove a file from watch\n size - see size of a file\n exit - exit from the program\n help - see a list of commands\n";
+                outStream << "Available commands:\n add - add a file to watch\n remove - remove a file from watch\n size - see size of a file\n exit - exit from the program\n help - see a list of commands\n" << flush;
             } else if (input.toLower() == "exit") {
                 break;
             }
@@ -158,8 +160,7 @@ int main(int argc, char *argv[])
 
     exitTimer.start();
 
-    int res = application.exec();
     f.wait();
 
-    return res;
+    return application.exec();
 }
