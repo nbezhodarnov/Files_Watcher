@@ -6,16 +6,21 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <iostream>
+#include <thread>
 
 File_Watcher::File_Watcher(QObject *parent) : QObject(parent) {
     timer = new QTimer(this);
 
-    connect(timer, &QTimer::timeout, this, &File_Watcher::check);
+    //connect(timer, &QTimer::timeout, this, &File_Watcher::check);
+    std::thread check_files(&File_Watcher::check, this);
+    check_files.detach();
 
     timer->start(100);
 }
 
 void File_Watcher::check() {
+    forever {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     if (files_list.size() > 0) {
         for (quint64 i = 0; i < files_list.size(); ++i) {
             if (QFileInfo::exists(files_list[i])) {
@@ -35,6 +40,7 @@ void File_Watcher::check() {
                 }
             }
         }
+    }
     }
 }
 

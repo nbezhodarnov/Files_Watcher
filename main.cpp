@@ -15,15 +15,15 @@
 //printf("\r%80c\r", ' ');
 
 void file_disappeared_notifier(const QString &file) {
-    qDebug() << "File " << file << " has been deleted or renamed or its directory has been changed.\n";
+    qDebug() << "\nFile " << file << " has been deleted or renamed or its directory has been changed.\n";
 }
 
 void file_appeared_notifier(const QString &file) {
-    qDebug() << "File " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n";
+    qDebug() << "\nFile " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n";
 }
 
 void file_changed_notifier(const QString &file) {
-    qDebug() << "File " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n";
+    qDebug() << "\nFile " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n";
 }
 
 int main(int argc, char *argv[])
@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
 
     QString input;
 
-    QObject::connect(&exitTimer,
-        &QTimer::timeout,
+    std::thread terminal(
         [&application, &exitFlag, &worker, &inStream, &input]
         {
+        forever {
             std::cout << "Input command: ";
             input = inStream.readLine();
 
@@ -149,12 +149,12 @@ int main(int argc, char *argv[])
                 }
                 qDebug() << "Available commands:\n add - add a file to watch\n remove - remove a file from watch\n size - see size of a file\n exit - exit from the program\n help - see a list of commands\n";
             } else if (input.toLower() == "exit") {
-                exitFlag = true;
+                break;
             }
-
-            if (exitFlag)
-                application.quit();
+           }
+        application.quit();
         });
+    terminal.detach();
 
     exitTimer.start();
 
