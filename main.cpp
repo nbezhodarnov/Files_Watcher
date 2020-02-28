@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QDebug>
 #include <QFile>
+#include <QDir>
 #include <future>
 #include <iostream>
 
@@ -65,18 +66,34 @@ int main(int argc, char *argv[])
                     std::cout << "Input full path to the file: ";
                     input = inStream.readLine().trimmed().remove('\'');
                 }
-                if (worker.add_file(input)) {
-                    qDebug() << "The file has been successfully added to observation.";
+                QFileInfo folder_check(input);
+                if ((folder_check.exists()) && (folder_check.isDir())) {
+                    std::cout << "It's a folder. Do you want to add all files from it (y/n)? ";
+                    QString confirmator = inStream.readLine().trimmed();
+                    if ((confirmator.toLower() == "yes") || (confirmator.toLower() == "y")) {
+                        QStringList files = QDir(input).entryList(QDir::Files, QDir::Name);
+                        for (quint64 i = 0; i < files.size(); i++) {
+                            if (worker.add_file(files[i])) {
+                                qDebug() << "File" << files[i] << "has been successfully added to observation.";
+                            }
+                        }
+                    } else {
+                        qDebug() << "The command has been canceled.";
+                    }
                 } else {
-                    qDebug() << "The file is already on observation.";
-                }
-                if (QFileInfo(input).exists()) {
-                    qDebug() << "Now this file exists.\n";
-                } else {
-                    qDebug() << "Now this file doesn't exists.\n";
-                }
-                if (input.toLower() == "exit") {
-                    input = "";
+                    if (worker.add_file(input)) {
+                        qDebug() << "The file has been successfully added to observation.";
+                    } else {
+                        qDebug() << "The file is already on observation.";
+                    }
+                    if (QFileInfo(input).exists()) {
+                        qDebug() << "Now this file exists.\n";
+                    } else {
+                        qDebug() << "Now this file doesn't exists.\n";
+                    }
+                    if (input.toLower() == "exit") {
+                        input = "";
+                    }
                 }
             } else if (input.toLower() == "remove") {
                 QStringList files_list = worker.get_files_list();

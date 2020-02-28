@@ -9,9 +9,9 @@
 
 File_Watcher::File_Watcher(QObject *parent) : QObject(parent) {
     timer = new QTimer(this);
-    
+
     connect(timer, &QTimer::timeout, this, &File_Watcher::check);
-    
+
     timer->start(100);
 }
 
@@ -43,7 +43,7 @@ QStringList File_Watcher::get_files_list() {
 }
 
 bool File_Watcher::add_file(const QString &file) {
-    if (files_list.contains(file)) {
+    if (std::find(files_list.begin(), files_list.end(), file) != files_list.end()) {
         return false;
     }
     files_list.append(file);
