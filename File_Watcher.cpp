@@ -8,7 +8,9 @@
 #include <iostream>
 #include <thread>
 
-File_Watcher::File_Watcher(QObject *parent) : QObject(parent) {
+File_Watcher::File_Watcher(QObject *parent, QString *out, QString *in) : QObject(parent) {
+    last_line = out;
+    input_line = in;
     timer = new QTimer(this);
 
     //connect(timer, &QTimer::timeout, this, &File_Watcher::check);
@@ -27,16 +29,16 @@ void File_Watcher::check() {
                 if (!file_exists.at(i)) {
                     file_exists.setBit(i, true);
                     files_sizes[i] = QFileInfo(files_list[i]).size();
-                    emit file_appeared(files_list[i]);
+                    emit file_appeared(files_list[i], last_line, input_line);
                 } else if (QFileInfo(files_list[i]).size() != files_sizes[i]) {
                     files_sizes[i] = QFileInfo(files_list[i]).size();
-                    emit file_changed(files_list[i]);
+                    emit file_changed(files_list[i], last_line, input_line);
                 }
             } else {
                 if (file_exists.at(i)) {
                     file_exists.setBit(i, false);
                     files_sizes[i] = 0;
-                    emit file_disappeared(files_list[i]);
+                    emit file_disappeared(files_list[i], last_line, input_line);
                 }
             }
         }

@@ -14,18 +14,23 @@
 #include <future>
 #include <iostream>
 
+#define ESC "\033"
+#define gotoxy(x,y)		printf(ESC "[%d;%dH", y, x);
+
+
 //printf("\r%80c\r", ' ');
+// \033[15C
 
-void file_disappeared_notifier(const QString &file) {
-    qDebug() << "\nFile " << file << " has been deleted or renamed or its directory has been changed.\n";
+void file_disappeared_notifier(const QString &file, QString *out_line, QString *in_line) {
+    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been deleted or renamed or its directory has been changed.\n" << *out_line << flush;
 }
 
-void file_appeared_notifier(const QString &file) {
-    qDebug() << "\nFile " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n";
+void file_appeared_notifier(const QString &file, QString *out_line, QString *in_line) {
+    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
 
-void file_changed_notifier(const QString &file) {
-    qDebug() << "\nFile " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n";
+void file_changed_notifier(const QString &file, QString *out_line, QString *in_line) {
+    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
 
 int main(int argc, char *argv[])
@@ -35,7 +40,9 @@ int main(int argc, char *argv[])
     QTimer exitTimer;
     exitTimer.setInterval(500);
 
-    File_Watcher worker;
+    QString input, output;
+    File_Watcher worker(nullptr, &output, &input);
+
     QObject::connect(&worker, &File_Watcher::file_disappeared, &file_disappeared_notifier);
     QObject::connect(&worker, &File_Watcher::file_appeared, &file_appeared_notifier);
     QObject::connect(&worker, &File_Watcher::file_changed, &file_changed_notifier);
@@ -53,23 +60,36 @@ int main(int argc, char *argv[])
 
     QTextStream inStream(stdin), outStream(stdout);
 
-    QString input;
-
     std::thread terminal(
-        [&application, &worker, &inStream, &outStream, &input]
+        [&application, &worker, &inStream, &outStream, &input, &output]
         {
         forever {
             outStream << "Input command: " << flush;
-            input = inStream.readLine();
+            output = "Input command: ";
+            /*input.clear();
+            input.replace(0, 1, '\0');
+            int j = 0;
+            QChar symbol;
+            while(input.at(j) != '\n') {
+                inStream >> symbol;
+                input.append(symbol);
+                qDebug() << input;
+                j++;
+            }
+            input.replace(j, 1, '\0');
+            input = input.trimmed().remove('\u0000');*/
+            input = inStream.readLine().trimmed();
 
             if (input.toLower() == "add") {
                 input = "";
+                output = "Input full path to the file: ";
                 while (input == "") {
                     outStream << "Input full path to the file: " << flush;
                     input = inStream.readLine().trimmed().remove('\'');
                 }
                 QFileInfo folder_check(input);
                 if ((folder_check.exists()) && (folder_check.isDir())) {
+                    output = "It's a folder. Do you want to add all files from it (y/n)? ";
                     outStream << "It's a folder. Do you want to add all files from it (y/n)? " << flush;
                     QString confirmator = inStream.readLine().trimmed();
                     if ((confirmator.toLower() == "yes") || (confirmator.toLower() == "y")) {
@@ -102,10 +122,11 @@ int main(int argc, char *argv[])
                 if (files_list.size()) {
                     outStream << "Choose number of file to remove:\n" << flush;
                     quint64 number;
-                    for (int i = 0; i < files_list.size(); ++i) {
+                    for (quint64 i = 0; i < files_list.size(); ++i) {
                         outStream << i + 1 << " - " << files_list[i] << '\n' << flush;
                     }
                     bool is_number = false;
+                    output = "Input number: ";
                     while (!is_number) {
                         outStream << "Input number: " << flush;
                         number = inStream.readLine().toLong(&is_number);
@@ -125,10 +146,11 @@ int main(int argc, char *argv[])
                 if (files_list.size()) {
                     outStream << "Choose number of file to see a size:\n" << flush;
                     quint64 number;
-                    for (int i = 0; i < files_list.size(); ++i) {
+                    for (quint64 i = 0; i < files_list.size(); ++i) {
                         outStream << i + 1 << " - " << files_list[i] << '\n' << flush;
                     }
                     bool is_number = false;
+                    output = "Input number: ";
                     while (!is_number) {
                         outStream << "Input number: " << flush;
                         number = inStream.readLine().toLong(&is_number);
