@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
             while(input.at(j) != '\n') {
                 symbol = getchar();
                 input.append(symbol);
-                qDebug() << input;
+                //qDebug() << input;
                 j++;
             }
             input.replace(j, 1, '\0');
@@ -112,9 +112,12 @@ int main(int argc, char *argv[])
                     QString confirmator = inStream.readLine().trimmed();
                     if ((confirmator.toLower() == "yes") || (confirmator.toLower() == "y")) {
                         QStringList files = QDir(input).entryList(QDir::Files, QDir::Name);
+                        if (input[input.size() - 1] != '/') {
+                            input.append('/');
+                        }
                         for (quint64 i = 0; i < files.size(); i++) {
-                            if (worker.add_file(files[i])) {
-                                outStream << "File " << files[i] << " has been successfully added to observation.\n" << flush;
+                            if (worker.add_file(input + files[i])) {
+                                outStream << "File " << input + files[i] << " has been successfully added to observation.\n" << flush;
                             }
                         }
                     } else {
