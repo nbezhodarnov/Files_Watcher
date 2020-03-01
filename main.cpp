@@ -14,6 +14,10 @@
 #include <future>
 #include <iostream>
 
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
+
 #define ESC "\033"
 #define gotoxy(x,y)		printf(ESC "[%d;%dH", y, x);
 
@@ -21,16 +25,30 @@
 //printf("\r%80c\r", ' ');
 // \033[15C
 
+void clear_line() {
+    struct winsize ws;
+    ioctl (STDOUT_FILENO, TIOCGWINSZ, &ws);
+    QTextStream out(stdout);
+    out << '\r' << flush;
+    for (int i = 0; i < ws.ws_col; i++) {
+        out << ' ';
+    }
+    out << '\r' << flush;
+}
+
 void file_disappeared_notifier(const QString &file, QString *out_line, QString *in_line) {
-    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been deleted or renamed or its directory has been changed.\n" << *out_line << flush;
+    clear_line();
+    QTextStream(stdout) << "File " << file << " has been deleted or renamed or its directory has been changed.\n" << *out_line << flush;
 }
 
 void file_appeared_notifier(const QString &file, QString *out_line, QString *in_line) {
-    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
+    clear_line();
+    QTextStream(stdout) << "File " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
 
 void file_changed_notifier(const QString &file, QString *out_line, QString *in_line) {
-    QTextStream(stdout) << "\r%80c\r" << "File " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
+    clear_line();
+    QTextStream(stdout) << "File " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
 
 int main(int argc, char *argv[])
@@ -66,19 +84,19 @@ int main(int argc, char *argv[])
         forever {
             outStream << "Input command: " << flush;
             output = "Input command: ";
-            /*input.clear();
+            input.clear();
             input.replace(0, 1, '\0');
             int j = 0;
             QChar symbol;
             while(input.at(j) != '\n') {
-                inStream >> symbol;
+                symbol = getchar();
                 input.append(symbol);
                 qDebug() << input;
                 j++;
             }
             input.replace(j, 1, '\0');
-            input = input.trimmed().remove('\u0000');*/
-            input = inStream.readLine().trimmed();
+            input = input.trimmed().remove('\u0000');
+            //input = inStream.readLine().trimmed();
 
             if (input.toLower() == "add") {
                 input = "";
