@@ -1,23 +1,18 @@
 #include "File_Watcher.h"
 
 #include <QTextStream>
-#include <QTextCodec>
-#include <QTimer>
-#include <QDebug>
 #include <QFileInfo>
-#include <iostream>
 #include <thread>
 
-File_Watcher::File_Watcher(QObject *parent, QString *out, QString *in) : QObject(parent) {
-    last_line = out;
-    input_line = in;
-    timer = new QTimer(this);
+File_Watcher::File_Watcher(QObject *parent, QString *out) : QObject(parent) {
+    if (out) {
+        last_line = out;
+    } else {
+        last_line = new QString();
+    }
 
-    //connect(timer, &QTimer::timeout, this, &File_Watcher::check);
     std::thread check_files(&File_Watcher::check, this);
     check_files.detach();
-
-    timer->start(100);
 }
 
 void File_Watcher::check() {
@@ -29,16 +24,16 @@ void File_Watcher::check() {
                 if (!file_exists.at(i)) {
                     file_exists.setBit(i, true);
                     files_sizes[i] = QFileInfo(files_list[i]).size();
-                    emit file_appeared(files_list[i], last_line, input_line);
+                    emit file_appeared(files_list[i], last_line);
                 } else if (QFileInfo(files_list[i]).size() != files_sizes[i]) {
                     files_sizes[i] = QFileInfo(files_list[i]).size();
-                    emit file_changed(files_list[i], last_line, input_line);
+                    emit file_changed(files_list[i], last_line);
                 }
             } else {
                 if (file_exists.at(i)) {
                     file_exists.setBit(i, false);
                     files_sizes[i] = 0;
-                    emit file_disappeared(files_list[i], last_line, input_line);
+                    emit file_disappeared(files_list[i], last_line);
                 }
             }
         }
@@ -86,5 +81,4 @@ quint64 File_Watcher::get_size(quint64 number) {
 }
 
 File_Watcher::~File_Watcher() {
-    delete timer;
 }

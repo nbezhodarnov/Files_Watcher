@@ -1,29 +1,15 @@
 #include "File_Watcher.cpp"
 
-#include <QFileSystemWatcher>
 #include <QCoreApplication>
-#include <QSignalMapper>
 #include <QTextStream>
 #include <QTextCodec>
 #include <QFileInfo>
 #include <QObject>
-#include <QBuffer>
-#include <QDebug>
-#include <QFile>
 #include <QDir>
 #include <future>
-#include <iostream>
 
 #include <sys/ioctl.h>
-#include <termios.h>
 #include <unistd.h>
-
-#define ESC "\033"
-#define gotoxy(x,y)		printf(ESC "[%d;%dH", y, x);
-
-
-//printf("\r%80c\r", ' ');
-// \033[15C
 
 void clear_line() {
     struct winsize ws;
@@ -36,17 +22,17 @@ void clear_line() {
     out << '\r' << flush;
 }
 
-void file_disappeared_notifier(const QString &file, QString *out_line, QString *in_line) {
+void file_disappeared_notifier(const QString &file, QString *out_line) {
     clear_line();
     QTextStream(stdout) << "File " << file << " has been deleted or renamed or its directory has been changed.\n" << *out_line << flush;
 }
 
-void file_appeared_notifier(const QString &file, QString *out_line, QString *in_line) {
+void file_appeared_notifier(const QString &file, QString *out_line) {
     clear_line();
     QTextStream(stdout) << "File " << file << " has been appeared. It has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
 
-void file_changed_notifier(const QString &file, QString *out_line, QString *in_line) {
+void file_changed_notifier(const QString &file, QString *out_line) {
     clear_line();
     QTextStream(stdout) << "File " << file << " has been changed. Now it has size " << QFileInfo(file).size() << " bytes.\n" << *out_line << flush;
 }
@@ -55,22 +41,12 @@ int main(int argc, char *argv[])
 {
     QCoreApplication application(argc, argv);
 
-    QTimer exitTimer;
-    exitTimer.setInterval(500);
-
     QString input, output;
-    File_Watcher worker(nullptr, &output, &input);
+    File_Watcher worker(nullptr, &output);
 
     QObject::connect(&worker, &File_Watcher::file_disappeared, &file_disappeared_notifier);
     QObject::connect(&worker, &File_Watcher::file_appeared, &file_appeared_notifier);
     QObject::connect(&worker, &File_Watcher::file_changed, &file_changed_notifier);
-
-
-    bool exitFlag = false;
-    auto f = std::async(std::launch::async, [&exitFlag, &worker]
-        {
-            //worker.check();
-        });
 
 
     QTextCodec* codec = QTextCodec::codecForName("UTF-8");
@@ -84,19 +60,7 @@ int main(int argc, char *argv[])
         forever {
             outStream << "Input command: " << flush;
             output = "Input command: ";
-            input.clear();
-            input.replace(0, 1, '\0');
-            int j = 0;
-            QChar symbol;
-            while(input.at(j) != '\n') {
-                symbol = getchar();
-                input.append(symbol);
-                //qDebug() << input;
-                j++;
-            }
-            input.replace(j, 1, '\0');
-            input = input.trimmed().remove('\u0000');
-            //input = inStream.readLine().trimmed();
+            input = inStream.readLine().trimmed();
 
             if (input.toLower() == "add") {
                 input = "";
@@ -196,14 +160,10 @@ int main(int argc, char *argv[])
             } else if (input.toLower() == "exit") {
                 break;
             }
-           }
+        }
         application.quit();
         });
     terminal.detach();
-
-    exitTimer.start();
-
-    f.wait();
 
     return application.exec();
 }
