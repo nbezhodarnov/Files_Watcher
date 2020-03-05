@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
     QTextCodec::setCodecForLocale(codec);
 
     QTextStream inStream(stdin), outStream(stdout);
+    outStream << "Welcome to File_Watcher program)\n\n";
 
     std::thread terminal(
         [&application, &worker, &inStream, &outStream, &input, &output]
