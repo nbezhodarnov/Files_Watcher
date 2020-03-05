@@ -3,11 +3,16 @@
 
 #include <QBitArray>
 #include <QObject>
+#include <QMutex>
 
 class File_Watcher : public QObject {
     Q_OBJECT
 public:
-    File_Watcher(QObject *parent = nullptr, QString *out = nullptr);
+    File_Watcher(File_Watcher &) = delete;
+    void operator=(const File_Watcher &) = delete;
+
+    static File_Watcher* GetInstance(QObject *parent = nullptr, QString *out = nullptr);
+
     QStringList get_files_list();
     bool add_file(const QString &file);
     void remove_file(quint64 number);
@@ -23,10 +28,14 @@ public slots:
     void check();
 
 private:
+    File_Watcher(QObject *parent = nullptr, QString *out = nullptr);
     QStringList files_list;
     QList<quint64> files_sizes;
     QBitArray file_exists;
     QString *last_line;
+
+    static File_Watcher *pinstance_;
+    static QMutex mutex_;
 };
 
 #endif //FILE_WATCHER_H

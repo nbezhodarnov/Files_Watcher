@@ -1,5 +1,6 @@
 #include "File_Watcher.h"
 
+#include <QMutexLocker>
 #include <QTextStream>
 #include <QFileInfo>
 #include <thread>
@@ -78,6 +79,21 @@ quint64 File_Watcher::get_size(quint64 number) {
         return ~0;
     }
     return QFileInfo(files_list[number]).size();
+}
+
+File_Watcher* File_Watcher::pinstance_ = nullptr;
+QMutex File_Watcher::mutex_;
+
+File_Watcher* File_Watcher::GetInstance(QObject *parent, QString *out) {
+    if (pinstance_ == nullptr)
+        {
+            QMutexLocker lock(&mutex_);
+            if (pinstance_ == nullptr)
+            {
+                pinstance_ = new File_Watcher(parent, out);
+            }
+        }
+        return pinstance_;
 }
 
 File_Watcher::~File_Watcher() {

@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     QCoreApplication application(argc, argv);
 
     QString input, output;
-    File_Watcher worker(nullptr, &output);
+    File_Watcher& worker = *File_Watcher::GetInstance(nullptr, &output);
 
     QObject::connect(&worker, &File_Watcher::file_disappeared, &file_disappeared_notifier);
     QObject::connect(&worker, &File_Watcher::file_appeared, &file_appeared_notifier);
@@ -152,11 +152,20 @@ int main(int argc, char *argv[])
                 } else {
                     outStream << "There are no files. You must add a file to use this command. The command has been canceled.\n" << flush;
                 }
+            } else if (input.toLower() == "list") {
+                QStringList files_list = worker.get_files_list();
+                if (files_list.size() > 0) {
+                    for (quint64 i = 0; i < files_list.size(); ++i) {
+                        outStream << i + 1 << " - " << files_list[i] << '\n' << flush;
+                    }
+                } else {
+                    outStream << "There are no files. You must add a file to use this command. The command has been canceled.\n" << flush;
+                }
             } else if ((input.toLower() != "exit") && (input != "")) {
                 if (input.toLower() != "help") {
                     outStream << "Unknown command: " << input << '\n' << flush;
                 }
-                outStream << "Available commands:\n add - add a file to watch\n remove - remove a file from watch\n size - see size of a file\n exit - exit from the program\n help - see a list of commands\n" << flush;
+                outStream << "Available commands:\n\tadd - add a file to watch\n\tremove - remove a file from watch\n\tsize - see size of a file\n\texit - exit from the program\n\tlist - see list of files\n\thelp - see a list of commands\n" << flush;
             } else if (input.toLower() == "exit") {
                 break;
             }
