@@ -9,7 +9,7 @@ File_Watcher::File_Watcher(QObject *parent, QString *out) : QObject(parent) {
     if (out) {
         last_line = out;
     } else {
-        last_line = new QString();
+        last_line = NULL;
     }
 
     std::thread check_files(&File_Watcher::check, this);
