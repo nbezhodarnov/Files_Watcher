@@ -17,7 +17,6 @@ public:
     bool add_file(const QString &file);
     void remove_file(quint64 number);
     quint64 get_size(quint64 number);
-    ~File_Watcher();
 
 signals:
     void file_disappeared(const QString &file, QString *out_line);
@@ -33,6 +32,8 @@ private:
     QList<quint64> files_sizes;
     QBitArray file_exists;
     QString *last_line;
+
+    ~File_Watcher();
 
     static File_Watcher *pinstance_;
     static QMutex mutex_;
